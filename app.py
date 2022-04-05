@@ -13,11 +13,11 @@ import random
 from decouple import config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from geopy.geocoders import Nominatim
 import os
 now = datetime.now().date()
 # def print_date_time():
 #     print(time.strftime("%A, %d. %B %Y %I:%M:%S %p"))
-
 
 
 app=Flask(__name__)
@@ -126,211 +126,51 @@ class Register(Resource):
             print(e)
             return {"status":"Failed Input"}
 
-def setWeeklyMealsAll():
-    db=Database()
-    db.insert(f"delete from weekly_meals")
-    data_users = db.query(f"select * from users")
-    for i in data_users:
-        data_fetch = db.query(f"select * from menu_list where diettype='keto'  order by random() limit 5")
-        print(i[0])
+
+class Logs(Resource):
+    def __init__(self):
+        self.db=Database()
+    
+    def get(self):
+        data_fetch = []
+        listitems = []
+        # try:
+        data_fetch = self.db.query(f"SELECT * from logs")
+        print(data_fetch)
         for x in data_fetch:
-            # print(x)
-            db.insert(f"INSERT INTO weekly_meals values(default,{x[0]},{i[0]})")
-    pass
-
-def setWeeklyMeals(id,diettype):
-    db=Database()
-    data_fetch = db.query(f"select * from menu_list where diettype='{diettype}'  order by random() limit 5")
-   
-    for x in data_fetch:
-        print(x)
-        db.insert(f"INSERT INTO weekly_meals values(default,{x[0]},{id})")
-    pass
-
-
-
-# scheduler = BackgroundScheduler()
-# scheduler.add_job(func=setWeeklyMealsAll, trigger="interval", seconds=30)
-# scheduler.start()
-
-class MenuList(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def get(self,diettype=None,categorytime=None,allergy=None):
-        print(allergy)
-        if(allergy!=''):
-            data_fetch = self.db.query(f"SELECT * FROM menu_list where categorytime='{categorytime}' and diettype='{diettype}' and foodtype!='{allergy}'")
-            print(data_fetch)
-        else:
-            data_fetch = self.db.query(f"SELECT * FROM menu_list where categorytime='{categorytime}' and diettype='{diettype}' ")
-        return data_fetch
-        
-    def post(self,pk=None,categorytime='',diettype=''):
-        data = request.get_json()
-        id = self.db.query("select max(id)+1 from menu_list")
-        print(id)
-        if(id[0][0]==None):
-            id=0
-        else:
-            id=id[0][0]
-        try:
-            res = self.db.insert(f"INSERT INTO menu_list values(default,'{data.get('name')}','{data.get('image')}','{data.get('categorytime')}','{data.get('diettype')}','{data.get('foodtype')}')")
-            print(res)
-            id = self.db.query("select max(id) from menu_list")
-            if(id[0][0]==None):
-                id=0
-            else:
-                id=id[0][0]
-            for x in data.get('recipe'):
-                print(x)
-                self.db.insert(f"INSERT INTO recipe values(default,{id},'{x}')")
-            for x in data.get('ingredients'):
-                print(x)
-                self.db.insert(f"INSERT INTO ingredients values(default,{id},'{x}',1)")
-            return {"data":id}
-            
-            # if(res==[]):
-            #     print(res)
-            #     return Response({"status":"Wrong Credentials"},status=404)
-            # else:
-            #     result_data = self.db.query(f"SELECT SUM(total) FROM receipt where user_id = '{data.get('id')}'")
-            #     result_settings = self.db.query(f"SELECT totalAmount from users where id = {data.get('id')}")
-            #     id = self.db.query(f"select max(id) from receipt")
-            #     if(int(result_data[0][0])>=(result_settings[0][0])):     
-            #         print(result_settings[0][0])``
-            #         return {"status":"exceed","id":id[0][0]}
-            #     else:
-            #         return {"status":"less","id":id[0][0]}
-        
-        except Exception as e:
-            print(e)
-            return {"status":f"{e}"}
-        
-
-
-class Ingredients(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def get(self,menu_id=None):
-        data_fetch = self.db.query(f"SELECT * FROM ingredients where menu_id='{menu_id}'")
-        return data_fetch
-    def post(self,menu_id):
-        data = request.get_json()
-        for x in data.get('ingredients'):
-                print(x)
-                self.db.insert(f"INSERT INTO ingredients values(default,{data.get('menu_id')},'{x}',1)")
-        for x in data.get('recipes'):
-                print(x)
-                self.db.insert(f"INSERT INTO recipe values(default,{data.get('menu_id')},'{x}')")
-        return ""
-class Pantry(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def get(self,user_id=None):
-        data_fetch = self.db.query(f"SELECT * FROM pantry where user_id='{user_id}'")
-        return data_fetch
+            listitems.append({"id":x[0],"location":x[1],"quantity":x[2],"disease":x[3]})
+        # except Exception as e:
+        #     print(e)
+        # for x in data_fetch:
+        #     print(x)
+        print(listitems)
+        return listitems
 
     def post(self,user_id=None):
         res = request.get_json()
-        data_fetch = self.db.insert(f"INSERT INTO pantry values(default,'{res.get('name')}',{res.get('user_id')},{res.get('quantity')})")
+        id = self.db.query(f"SELECT * FROM logs where disease='{res.get('disease')}'")
+        if(len(id)==0):
+            data_fetch = self.db.insert(f"INSERT INTO logs values(default,'{res.get('location')}',1,'{res.get('disease')}')")
+        else:
+            self.db.insert(f"UPDATE logs set quantity=quantity+1 where disease='{res.get('disease')}'")
         return
 
-class Likes(Resource):
+
+
+class LongLat(Resource):
     def __init__(self):
         self.db=Database()
 
-    def post(self,menu_id=None):
+    def post(self,user_id=None):
         res = request.get_json()
-        data_fetch = self.db.insert(f"INSERT INTO likes values(default,'{res.get('menu_id')}',{res.get('user_id')})")
-        return
-
-class Weekly(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def get(self,user_id=None):
-        try:
-            listitems = []
-            # print(user_id)
-            data_fetch = self.db.query(f"SELECT * FROM weekly_meals where user_id={user_id}")
-            for x in data_fetch:
-                # print(x[1])
-                data_meals = self.db.query(f"SELECT * FROM menu_list where id={x[1]}")
-                if(len(data_meals)!=0):
-                    print(data_meals[0])
-                    listitems.append(data_meals[0])
-            return listitems
-        except Exception as e:
-            print(e)
-            return {"data":""}
-
-class GroceryPantry(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def post(self):
-        res = request.get_json()
-        for x in res['listitem']:
-            data = self.db.query(f"select * from pantry where name='{x['name']}' and user_id={res['user_id']}")
-            if(len(data)==0):
-                data_fetch = self.db.insert(f"INSERT INTO pantry values(default,'{x['name']}',{res['user_id']},{x['quantity']})")
-            else:
-                data_fetch = self.db.insert(f"UPDATE pantry set quantity=quantity+1 where user_id={res['user_id']} and name='{x['name']}'" )
-        return "okay"
-
-class Groceries(Resource):
-    def __init__(self):
-        self.db=Database()
-    def get(self,user_id=None):
-        pantry_list = self.db.query(f"SELECT * FROM pantry where user_id={user_id}")
-        weekly_list = self.db.query(f"SELECT * FROM weekly_meals where user_id={user_id}")
-        ingredients_list = []
-        grocery_list=[]
-        list_weekly = []
-        menu_list = []
-        for x in weekly_list:
-            menu_list.append(str(x[1]))
-        #for error handling
-        if(menu_list==[]):
-            return ""
-        data_ingredients = self.db.query(f"select ingredients_name, sum(quantity) from ingredients where menu_id in ({', '.join(menu_list)}) group by ingredients_name;")
-        # for x in weekly_list:
-        #     data_ingredients = self.db.query(f"SELECT * FROM ingredients where menu_id={x[1]}")
-        #     for i in data_ingredients:
-        #         if(len(i)!=0):
-        #             ingredients_list.append(i[2])
-        # pantry_list = [['2 cups of chilled white rice', 1], ['5 pieces of longanisa\n', 1], ['salt', 1], ['1 cup of water for cooking longanisa', 1], ['2-3 eggs, cooked sunny side up\n', 1], ['oil', 1], ['1 tablespoon cooking oil\n', 1], ['1⁄2 teaspoon of salt', 1], ['ingredients test', 1], ['egg', 1]]
-        data_ingredients = convertToList(data_ingredients)
-        # for i in convertToList(data_ingredients):
-        #     print(i)
-        # print(data_ingredients)
-        for (x,y) in enumerate(data_ingredients):
-            for (i,j) in enumerate(pantry_list):
-                if(y[0]==j[1]):
-                    # print(j[0])
-                    if(y[1]-j[3]<=0):
-                        # data_ingredients.remove()
-                        data_ingredients[x]=None
-                        pantry_list.remove(j)
-                        # pantry_list.remove(j)
-                    else:
-                        data_ingredients[x][1]=y[1]-j[3]
-                    isAdd = False
-        # data_ingredients.append(['egg',1])
-        print(list(filter(None,data_ingredients)))
-        
-        return list(filter(None,data_ingredients))
-
-
-def convertToList(list_data):
-    listitem = []
-    for x in list_data:
-         listitem.append(list(x))
-    return listitem
-
+        aps = Nominatim(user_agent="tutorial")
+        """This function returns an address as raw from a location
+        will repeat until success"""
+        # build coordinates string to pass to reverse() functio
+        coordinates = f"{res.get('latitude')}, {res.get('longitude')}"
+        location = aps.reverse(coordinates, language='en').raw
+        print(location.get('address').get('city'))
+        return location.get('address').get('city')
 
 
 class Recipe(Resource):
@@ -444,16 +284,9 @@ class ResetPassword(Resource):
 api.add_resource(Register,'/api/v1/register')   
 api.add_resource(Usermanagement,'/api/v1/users/<int:pk>')
 api.add_resource(Login,'/api/v1/login')
-api.add_resource(MenuList,'/api/v1/menu_list/<string:categorytime>/<string:diettype>/<string:allergy>')
-api.add_resource(Pantry,'/api/v1/pantry/<int:user_id>')
-api.add_resource(Recipe,'/api/v1/recipe/<int:menu_id>')
-api.add_resource(Ingredients,'/api/v1/ingredients/<int:menu_id>')
-api.add_resource(Recommend,'/api/v1/recommend/<int:user_id>/<string:diettype>')
-api.add_resource(Weekly,'/api/v1/weekly/<int:user_id>')
-api.add_resource(Likes,'/api/v1/likes/<int:menu_id>')
-api.add_resource(Groceries,'/api/v1/groceries/<int:user_id>')
-api.add_resource(GroceryPantry,'/api/v1/grocerypantry')
+api.add_resource(LongLat,'/api/v1/longlat')
+api.add_resource(Logs,'/api/v1/logs')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0',port="5000")
+    app.run(debug=True,host='0.0.0.0',port="5001")
