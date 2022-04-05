@@ -8,3 +8,4 @@ Flask-RESTful==0.3.9
 requests
 python-decouple==3.4
 pyjwt
+geopy
