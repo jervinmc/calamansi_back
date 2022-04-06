@@ -169,8 +169,8 @@ class LongLat(Resource):
         # build coordinates string to pass to reverse() functio
         coordinates = f"{res.get('latitude')}, {res.get('longitude')}"
         location = aps.reverse(coordinates, language='en').raw
-        print(location.get('address').get('city'))
-        return location.get('address').get('city')
+        print(location.get('address'))
+        return f"{location.get('address').get('city')}, {location.get('address').get('state')}"
 
 
 class Recipe(Resource):
@@ -258,7 +258,7 @@ class ResetPassword(Resource):
             msg = MIMEMultipart()
             msg.add_header('Content-Type', 'text/html')
             msg['To'] = str(res.get('email'))
-            msg['Subject'] = "Reset password from Anongulam app"
+            msg['Subject'] = "Reset password from CALAHEALTH app"
             part1=MIMEText("""\
                 <html>
                     <body>
@@ -271,9 +271,9 @@ class ResetPassword(Resource):
             msg.attach(part1)
             server = smtplib.SMTP('smtp.gmail.com: 587')
             server.starttls()
-            server.login('somersalt69@gmail.com', "Stayalive4me")
+            server.login('usagi.reboot@gmail.com', "12899bbc")
             # send the message via the server.
-            server.sendmail('somersalt69@gmail.com', msg['To'], msg.as_string())
+            server.sendmail('usagi.reboot@gmail.com', msg['To'], msg.as_string())
             server.quit()
             print("successfully sent email to %s:" % (msg['To']))
             return {"status":"success"}
