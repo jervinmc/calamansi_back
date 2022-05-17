@@ -186,57 +186,6 @@ class Recipe(Resource):
         data_fetch = self.db.insert(f"INSERT INTO recipe values(default,'{res.get('name')}',{res.get('user_id')},1)")
         return
 
-
-class Recommend(Resource):
-    def __init__(self):
-        self.db=Database()
-
-    def get(self,user_id=None,diettype=None):
-        list_id = []
-        listitems=[]
-        data_results=[]
-        data_fetch = self.db.query(f"SELECT * FROM likes where user_id={user_id}")
-        
-        # list_id.append(data_fetch[0][1])
-        # for x in data_fetch:
-        #     x = self.db.query(f"SELECT * FROM ingredients where menu_id={x[1]}")
-        #     if(len(x)!=0):  
-        #         data_results.append(x[0])
-        for x in data_fetch:
-            y = self.db.query(f"SELECT * FROM ingredients where menu_id={x[1]}")
-            for i in y:
-                data_results.append(i)
-        listitems=[]
-        # print(data_results)
-        ingredients_list_data=[]
-        for x in data_results:
-            ingredients_list_data.append(f"'{x[2]}'")
-        if(len(ingredients_list_data)!=0):
-            print(', '.join(ingredients_list_data))
-            data_ingredients = self.db.query(f"SELECT menu_id FROM ingredients where ingredients_name in ({', '.join(ingredients_list_data)}) group by menu_id;")
-            menu_list=[]
-            for i in data_ingredients:
-                menu_list.append(str(i[0]))
-            listitems = self.db.query(f"SELECT * FROM menu_list where id in ({', '.join(menu_list)}) and diettype='{diettype}' ")
-            print(listitems)
-        # print(menu_list)
-        # for x in data_results:
-        #     get_same = self.db.query(f"SELECT * FROM ingredients where ingredients_name LIKE '%{x[2]}%'  ")
-        #     print(x[2])
-        #     if(len(get_same)!=0):
-        #         if(get_same[0][1] in list_id):
-        #             pass
-        #         else:
-        #             list_id.append(get_same[0][1])
-        #         pass
-        # # print(list_id)
-        # for x in list_id:
-        #     l = self.db.query(f"SELECT * FROM menu_list where id={x}")
-        #     listitems.append(l[0])
-        #     get_same = self.db.query(f"SELECT * FROM recipe where ")
-        # print(tuple(list_id[1]))
-        # print(listitems)
-        return listitems
         
     
 
