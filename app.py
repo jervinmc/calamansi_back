@@ -138,21 +138,21 @@ class Logs(Resource):
         data_fetch = self.db.query(f"SELECT * from logs")
         print(data_fetch)
         for x in data_fetch:
-            listitems.append({"id":x[0],"location":x[1],"quantity":x[2],"disease":x[3]})
+            if(x[4]):
+                listitems.append({"id":x[0],"location":x[1],"quantity":x[2],"disease":x[3],"date":str(x[4])})
         # except Exception as e:
         #     print(e)
         # for x in data_fetch:
         #     print(x)
-        print(listitems)
         return listitems
 
     def post(self,user_id=None):
         res = request.get_json()
         id = self.db.query(f"SELECT * FROM logs where disease='{res.get('disease')}'")
-        if(len(id)==0):
-            data_fetch = self.db.insert(f"INSERT INTO logs values(default,'{res.get('location')}',1,'{res.get('disease')}')")
-        else:
-            self.db.insert(f"UPDATE logs set quantity=quantity+1 where disease='{res.get('disease')}'")
+        # if(len(id)==0):
+        data_fetch = self.db.insert(f"INSERT INTO logs values(default,'{res.get('location')}',1,'{res.get('disease')}','{now}')")
+        # else:
+        #     self.db.insert(f"UPDATE logs set quantity=quantity+1 where disease='{res.get('disease')}'")
         return
 
 
@@ -238,4 +238,4 @@ api.add_resource(Logs,'/api/v1/logs')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0',port="5000")
+    app.run(debug=True,host='localhost',port="5001")
