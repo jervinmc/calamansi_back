@@ -14,6 +14,7 @@ from decouple import config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from geopy.geocoders import Nominatim
+import boto3
 import os
 now = datetime.now().date()
 # def print_date_time():
@@ -230,6 +231,22 @@ class ResetPassword(Resource):
             print("invalid")
             return {"status":"invalid"}
 
+class Upload(Resource):
+    def __init__(self):
+        self.db=Database()
+
+    def post(self,pk=None):
+        imageFile=request.files['image']
+        file_path=os.path.join('', imageFile.filename) # path where file can be saved
+        imageFile.save(file_path)
+        client = boto3.client('s3',aws_access_key_id=config("AWS_ACCESS_ID"),aws_secret_access_key=config("AWS_SECRET_ID"))
+        client.upload_file(f'{imageFile.filename}','calamansifront',f'{imageFile.filename}')
+        # self.db.insert(f"UPDATE receipt set image='{imageFile.filename}' where id={pk} ")
+        return {"status":"Successful"}
+
+api.add_resource(Upload,'/api/v1/upload/<int:pk>')
+
+
 api.add_resource(Register,'/api/v1/register')   
 api.add_resource(Usermanagement,'/api/v1/users/<int:pk>')
 api.add_resource(Login,'/api/v1/login')
@@ -238,4 +255,4 @@ api.add_resource(Logs,'/api/v1/logs')
 api.add_resource(ResetPassword,'/api/v1/reset_password')
 # api.add_resource(UploadTest,'/api/v1/uploadtest')
 if __name__ == "__main__":
-    app.run(debug=True,host='0.0.0.0',port="5000")
+    app.run(debug=True,host='localhost',port="5001")
